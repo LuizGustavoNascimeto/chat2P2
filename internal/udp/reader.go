@@ -2,7 +2,7 @@ package udp
 
 import (
 	"chat2p2/internal/datagram"
-	"chat2p2/internal/message"
+	"chat2p2/internal/receiver"
 	"chat2p2/pkg/logger"
 	"net"
 
@@ -29,6 +29,6 @@ func ReadLoop(conn *net.UDPConn) {
 			log.Error("Error parsing datagram", zap.Error(err))
 			continue
 		}
-		message.MessageHandler(dg, remoteAddr.String())
+		receiver.MessageHandler(dg, remoteAddr.String())
 	}
 }

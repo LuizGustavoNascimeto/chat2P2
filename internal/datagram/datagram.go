@@ -2,9 +2,11 @@ package datagram
 
 import (
 	"chat2p2/pkg/logger"
+
+	"go.uber.org/zap"
 )
 
-type MessageType int8
+type MessageType uint8
 
 const (
 	TEXT  MessageType = 1
@@ -14,7 +16,7 @@ const (
 )
 
 type Datagram struct {
-	MessageType MessageType
+	Type        MessageType
 	NickSize    uint8
 	Nick        string
 	MessageSize uint8
@@ -23,6 +25,7 @@ type Datagram struct {
 
 func Unmarshal(data []byte) (*Datagram, error) {
 	//represents the current position in the datagram
+	log := logger.Get()
 	var pos int = 0
 
 	if len(data) < 4 {
@@ -30,8 +33,8 @@ func Unmarshal(data []byte) (*Datagram, error) {
 	}
 	//set o nicksize e o messageType
 	dg := &Datagram{
-		MessageType: MessageType(data[0]),
-		NickSize:    data[1],
+		Type:     MessageType(data[0]),
+		NickSize: data[1],
 	}
 	pos += 2
 
@@ -47,6 +50,7 @@ func Unmarshal(data []byte) (*Datagram, error) {
 	dg.MessageSize = data[pos]
 	pos++
 	dg.MessageText = string(data[pos : pos+int(dg.MessageSize)])
+	log.Info("Parsed datagram", zap.Uint8("type", uint8(dg.Type)), zap.String("nick", dg.Nick), zap.String("message", dg.MessageText))
 
 	return dg, nil
 
@@ -57,11 +61,31 @@ func (dg *Datagram) Marshal() ([]byte, error) {
 	}
 	//messageType (1 byte) + nickSize (1 byte) + nick (nickSize bytes) + messageSize (1 byte) + messageText (messageSize bytes)
 	data := make([]byte, 1+1+dg.NickSize+1+dg.MessageSize)
-	data[0] = byte(dg.MessageType)
+	data[0] = byte(dg.Type)
 	data[1] = byte(dg.NickSize)
 	copy(data[2:2+dg.NickSize], []byte(dg.Nick))
 	data[2+dg.NickSize] = byte(dg.MessageSize)
 	copy(data[3+dg.NickSize:], []byte(dg.MessageText))
 	return data, nil
 
+}
+
+// DEBUG ONLY
+func TypeToString(t MessageType) string {
+	switch t {
+	case TEXT:
+		return "TEXT"
+	case EMOJI:
+		return "EMOJI"
+	case URL:
+		return "URL"
+	case ECHO:
+		return "ECHO"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+func (dg *Datagram) String() string {
+	return TypeToString(dg.Type) + "/" + dg.Nick + "/" + string(dg.MessageText)
 }

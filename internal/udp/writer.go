@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"chat2p2/internal/datagram"
 	"chat2p2/internal/message"
-	"chat2p2/internal/users"
+	"chat2p2/internal/peers"
 	"chat2p2/pkg/logger"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -17,10 +19,15 @@ import (
 
 func WriteLoop(conn *net.UDPConn) {
 	log := logger.Get()
+	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		input, err := ReadLine("> ")
+		input, err := ReadLine("> ", reader)
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				log.Info("stdin closed, exiting write loop")
+				return // encerra em vez de spammar
+			}
 			log.Error("Error reading input", zap.Error(err))
 			continue
 		}
@@ -31,22 +38,21 @@ func WriteLoop(conn *net.UDPConn) {
 			log.Error("Error converting message to bytes", zap.Error(err))
 			continue
 		}
-		usersRepo := users.NewStore()
-		targets := usersRepo.GetAllAddresses() // Obtém os endereços de todos os usuários registrados
+		peersRepo := peers.NewStore()
+		targets := peersRepo.GetAllAddresses() // Obtém os endereços de todos os usuários registrados
 		Broadcast(conn, bytes, targets)        // Envia para todos na rede local
 	}
 
 }
 
-func ReadLine(prompt string) (string, error) {
+func ReadLine(prompt string, reader *bufio.Reader) (string, error) {
 	if prompt != "" {
 		fmt.Print(prompt)
 	}
 
-	reader := bufio.NewReader(os.Stdin)
 	input, err := reader.ReadString('\n')
 	if err != nil {
-		return "", fmt.Errorf("erro ao ler entrada: %w", err)
+		return "", fmt.Errorf("Error reading input: %w", err)
 	}
 
 	return strings.TrimRight(input, "\r\n"), nil // remove \n e \r\n (Windows)

@@ -1,11 +1,10 @@
-package chat2p2
+package main
 
 import (
+	"chat2p2/internal/env"
+	"chat2p2/internal/peers"
 	"chat2p2/internal/udp"
-	"chat2p2/internal/users"
 	"chat2p2/pkg/logger"
-	"chat2p2/pkg/utils"
-	"fmt"
 	"net"
 
 	"go.uber.org/zap"
@@ -17,40 +16,40 @@ func main() {
 
 	log := logger.Get()
 
-	port, err := utils.FindAvailablePort(8000, 9000)
-	if err != nil {
-		log.Fatal("Failed to find an available port", zap.Error(err))
-	}
-	log.Info("Starting UDP chat", zap.Int("port", port))
+	port := env.GetPort()
 
-	conn, err := udp.StartUDP(fmt.Sprintf(":%d", port))
+	log.Info("Starting UDP chat", zap.String("port", port))
+
+	conn, err := udp.StartUDP(port)
 	if err != nil {
-		log.Fatal("Failed to start UDP server", zap.Error(err), zap.Int("port", port))
+		log.Fatal("Failed to start UDP server", zap.Error(err), zap.String("port", port))
 	}
 	defer conn.Close()
 
-	findUsers(conn)
+	// Descobrir peers na rede local e registrá-los no repositório de usuários
+	setPeers(conn)
 
 	// goroutine de leitura
 	go udp.ReadLoop(conn)
 
+	// loop de escrita
 	udp.WriteLoop(conn)
 
 }
 
-func findUsers(conn *net.UDPConn) {
+func setPeers(conn *net.UDPConn) {
 	log := logger.Get()
-	peers := udp.FindPeers(conn)
-	if len(peers) == 0 {
+	p := udp.FindPeers(conn)
+	if len(p) == 0 {
 		log.Info("No peers found")
 	} else {
-		log.Info("Peers found", zap.Int("count", len(peers)))
-		usersRepo := users.NewStore()
-		for _, peer := range peers {
-			if err := usersRepo.Create(peer); err != nil {
+		log.Info("Peers found", zap.Int("count", len(p)))
+		peersRepo := peers.NewStore()
+		for _, peer := range p {
+			if _, err := peersRepo.Create(peer.Addr); err != nil {
 				log.Error("Failed to create user", zap.String("addr", peer.Addr), zap.Error(err))
 			} else {
-				log.Info("Peer registered", zap.String("name", peer.Name), zap.String("addr", peer.Addr))
+				log.Info("Peer registered", zap.String("addr", peer.Addr))
 			}
 		}
 	}
