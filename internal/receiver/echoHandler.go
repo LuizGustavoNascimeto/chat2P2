@@ -1,7 +1,13 @@
+/*
+Descrição: Trata datagramas ECHO para descoberta e confirmação de peers ativos.
+Autor: Luizg
+Data de criação: 2026-04-25
+Data de atualização: 2026-04-25
+*/
+
 package receiver
 
 import (
-	"chat2p2/internal/datagram"
 	"chat2p2/internal/env"
 	"chat2p2/internal/peers"
 	"chat2p2/internal/sender"
@@ -9,7 +15,10 @@ import (
 	"net"
 )
 
-func EchoHandler(dg *datagram.Datagram, addr string, peersRepo *peers.Store, conn *net.UDPConn) error {
+// EchoHandler processa pacote ECHO, registra peer novo e responde quando necessário.
+// Entradas:  endereço remoto, repositório de peers e conexão UDP.
+// Saída: erro em falhas de parsing/registro/envio; nil em sucesso.
+func EchoHandler(addr string, peersRepo *peers.Store, conn *net.UDPConn) error {
 	myPort := env.GetPort()
 	addrPort, err := utils.ExtractPort(addr)
 	if err != nil {

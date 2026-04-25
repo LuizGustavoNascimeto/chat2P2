@@ -1,3 +1,10 @@
+/*
+Descrição: Descobre peers ativos por broadcast de ping/pong em intervalo de portas UDP.
+Autor: Luizg
+Data de criação: 2026-04-25
+Data de atualização: 2026-04-25
+*/
+
 package udp
 
 import (
@@ -13,7 +20,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// broadcastPing envia um ping UDP para todas as portas no intervalo [start, end].
+// broadcastPing envia ping UDP para todas portas no intervalo informado.
+// Entradas: conexão UDP, payload serializado, porta inicial e porta final.
+// Saída: nenhuma; erros de envio são registrados em log.
 func broadcastPing(conn *net.UDPConn, data []byte, start, end int) {
 	log := logger.Get()
 	var wg sync.WaitGroup
@@ -35,8 +44,9 @@ func broadcastPing(conn *net.UDPConn, data []byte, start, end int) {
 	wg.Wait()
 }
 
-// collectEchoReplies lê respostas UDP durante o timeout e retorna os peers
-// que responderam com ECHO.
+// collectEchoReplies lê respostas ECHO por janela de tempo e monta lista de peers.
+// Entradas: conexão UDP e tempo máximo de coleta.
+// Saída: slice com peers que responderam com mensagem ECHO.
 func collectEchoReplies(conn *net.UDPConn, timeout time.Duration) []peers.Peer {
 	conn.SetReadDeadline(time.Now().Add(timeout))
 	defer conn.SetReadDeadline(time.Time{})
@@ -49,12 +59,12 @@ func collectEchoReplies(conn *net.UDPConn, timeout time.Duration) []peers.Peer {
 		if err != nil {
 			break
 		}
-		response, err := datagram.Unmarshal(buf[:n])
+		responseDatagram, err := datagram.Unmarshal(buf[:n])
 		if err != nil {
 			continue
 		}
 
-		if response.Type == datagram.ECHO {
+		if responseDatagram.Type == datagram.ECHO {
 			found = append(found, peers.Peer{
 				Addr:     remoteAddr.String(),
 				LastSeen: time.Now().Unix(),
@@ -64,10 +74,12 @@ func collectEchoReplies(conn *net.UDPConn, timeout time.Duration) []peers.Peer {
 	return found
 }
 
-// FindPeers descobre peers ativos nas portas 8000–9000 via ping/pong UDP.
+// FindPeers executa ciclo ping/pong para descobrir peers ativos.
+// Entradas: conexão UDP ativa.
+// Saída: slice de peers encontrados; nil em falhas de serialização.
 func FindPeers(conn *net.UDPConn) []peers.Peer {
-	dg := message.CreateEcho("ping")
-	data, err := dg.Marshal()
+	pingDatagram := message.CreateEcho("ping")
+	data, err := pingDatagram.Marshal()
 	if err != nil {
 		logger.Get().Error("Failed to marshal ping datagram", zap.Error(err))
 		return nil

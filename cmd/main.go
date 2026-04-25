@@ -1,3 +1,10 @@
+/*
+Descrição: Inicializa chat P2P via UDP, descobre peers e inicia loops de leitura e escrita.
+Autor: Luizg
+Data de criação: 2026-04-25
+Data de atualização: 2026-04-25
+*/
+
 package main
 
 import (
@@ -10,6 +17,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// main configura logger, abre socket UDP, descobre peers e inicia loops de I/O.
+// Entradas: argumentos de linha de comando opcionais (apelido) lidos por camadas internas.
+// Saída: nenhuma; encerra processo em falha crítica de inicialização.
 func main() {
 	logger.Init("development")
 	defer logger.Sync()
@@ -27,25 +37,28 @@ func main() {
 	defer conn.Close()
 	peersRepo := peers.NewStore()
 
-	// Descobrir peers na rede local e registrá-los no repositório de usuários
-	setPeers(conn, peersRepo)
+	// Descobre peers na rede local e registra no repositório.
+	discoverAndRegisterPeers(conn, peersRepo)
 
-	// goroutine de leitura
+	// Inicia goroutine de leitura.
 	go udp.ReadLoop(conn, peersRepo)
 
-	// loop de escrita
+	// Mantém loop principal de escrita.
 	udp.WriteLoop(conn, peersRepo)
 
 }
 
-func setPeers(conn *net.UDPConn, peersRepo *peers.Store) {
+// discoverAndRegisterPeers encontra peers ativos e registra cada endereço no repositório.
+// Entradas: conexão UDP ativa e repositório de peers.
+// Saída: nenhuma; efeitos colaterais no repositório e logs.
+func discoverAndRegisterPeers(conn *net.UDPConn, peersRepo *peers.Store) {
 	log := logger.Get()
-	p := udp.FindPeers(conn)
-	if len(p) == 0 {
+	foundPeers := udp.FindPeers(conn)
+	if len(foundPeers) == 0 {
 		log.Info("No peers found")
 	} else {
-		log.Info("Peers found", zap.Int("count", len(p)))
-		for _, peer := range p {
+		log.Info("Peers found", zap.Int("count", len(foundPeers)))
+		for _, peer := range foundPeers {
 			if _, err := peersRepo.Create(peer.Addr); err != nil {
 				log.Error("Failed to create user", zap.String("addr", peer.Addr), zap.Error(err))
 			}

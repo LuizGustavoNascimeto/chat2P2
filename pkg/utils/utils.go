@@ -1,3 +1,10 @@
+/*
+Descrição: Reúne utilitários de rede para descobrir portas UDP livres e extrair porta de endereço.
+Autor: Luizg
+Data de criação: 2026-04-25
+Data de atualização: 2026-04-25
+*/
+
 package utils
 
 import (
@@ -10,7 +17,9 @@ import (
 	"strings"
 )
 
-// FindAvailablePortUDP retorna a primeira porta UDP livre no intervalo [start, end].
+// FindAvailablePortUDP retorna primeira porta UDP livre no intervalo [start, end].
+// Entradas: limite inicial e final de porta para busca.
+// Saída: número da porta disponível ou erro quando range for inválido/sem portas livres.
 // No Linux tenta ler /proc/net/udp para resolver em O(1) syscalls.
 // Em outros sistemas faz fallback iterativo com ListenPacket.
 func FindAvailablePortUDP(start, end int) (int, error) {
@@ -27,8 +36,10 @@ func FindAvailablePortUDP(start, end int) (int, error) {
 	return findViaListen(start, end)
 }
 
-// findViaProc lê /proc/net/udp (Linux) e retorna a primeira porta do range
-// que não constar como ocupada. Muito mais rápido que tentar bind em cada porta.
+// findViaProc lê /proc/net/udp e /proc/net/udp6 para detectar portas ocupadas.
+// Entradas: limite inicial e final de porta para busca.
+// Saída: porta disponível e flag booleana indicando sucesso na estratégia /proc.
+// Muito mais rápido que tentar bind em cada porta.
 func findViaProc(start, end int) (int, bool) {
 	f, err := os.Open("/proc/net/udp")
 	if err != nil {
@@ -50,11 +61,11 @@ func findViaProc(start, end int) (int, bool) {
 		if len(parts) != 2 {
 			continue
 		}
-		port64, err := strconv.ParseInt(parts[1], 16, 32)
+		parsedPortHex, err := strconv.ParseInt(parts[1], 16, 32)
 		if err != nil {
 			continue
 		}
-		occupied[int(port64)] = struct{}{}
+		occupied[int(parsedPortHex)] = struct{}{}
 	}
 
 	// Faz o mesmo para IPv6 se existir
@@ -71,11 +82,11 @@ func findViaProc(start, end int) (int, bool) {
 			if len(parts) != 2 {
 				continue
 			}
-			port64, err := strconv.ParseInt(parts[1], 16, 32)
+			parsedPortHex, err := strconv.ParseInt(parts[1], 16, 32)
 			if err != nil {
 				continue
 			}
-			occupied[int(port64)] = struct{}{}
+			occupied[int(parsedPortHex)] = struct{}{}
 		}
 	}
 
@@ -88,6 +99,8 @@ func findViaProc(start, end int) (int, bool) {
 }
 
 // findViaListen tenta abrir cada porta do range com ListenPacket (Windows :( ).
+// Entradas: porta inicial e final do intervalo.
+// Saída: primeira porta disponível ou erro quando nenhuma estiver livre.
 func findViaListen(start, end int) (int, error) {
 	for port := start; port <= end; port++ {
 		conn, err := net.ListenPacket("udp", fmt.Sprintf(":%d", port))
@@ -102,6 +115,9 @@ func findViaListen(start, end int) (int, error) {
 	))
 }
 
+// ExtractPort separa e retorna somente parte da porta de um endereço host:porta.
+// Entradas: endereço de rede no formato host:porta.
+// Saída: string da porta e erro se formato for inválido.
 func ExtractPort(addr string) (string, error) {
 	_, portStr, err := net.SplitHostPort(addr)
 	if err != nil {

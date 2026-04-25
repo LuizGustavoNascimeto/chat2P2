@@ -1,3 +1,10 @@
+/*
+Descrição: Mantém loop de leitura UDP, faz parsing de datagramas e delega para handlers.
+Autor: Luizg
+Data de criação: 2026-04-25
+Data de atualização: 2026-04-25
+*/
+
 package udp
 
 import (
@@ -12,6 +19,9 @@ import (
 
 const MaxPacketSize = 322
 
+// ReadLoop escuta socket UDP continuamente e despacha mensagens recebidas.
+// Entradas: conexão UDP ativa e repositório de peers.
+// Saída: nenhuma; loop contínuo até encerramento da conexão.
 func ReadLoop(conn *net.UDPConn, peersRepo *peers.Store) {
 	defer conn.Close()
 	log := logger.Get()

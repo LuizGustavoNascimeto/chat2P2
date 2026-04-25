@@ -1,3 +1,10 @@
+/*
+Descrição: Envia resposta ECHO (pong) para endereço remoto durante descoberta de peers.
+Autor: Luizg
+Data de criação: 2026-04-25
+Data de atualização: 2026-04-25
+*/
+
 package sender
 
 import (
@@ -5,9 +12,12 @@ import (
 	"net"
 )
 
+// ResponseEcho envia datagrama ECHO de resposta para peer solicitante.
+// Entradas: endereço remoto de destino e conexão UDP ativa.
+// Saída: erro quando serialização, resolução de endereço ou envio falhar.
 func ResponseEcho(addr string, conn *net.UDPConn) error {
-	dg := message.CreateEcho("pong")
-	data, err := dg.Marshal()
+	echoDatagram := message.CreateEcho("pong")
+	data, err := echoDatagram.Marshal()
 	if err != nil {
 		return err
 	}

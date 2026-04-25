@@ -1,3 +1,10 @@
+/*
+Descrição: Define formato de datagrama UDP e faz serialização/desserialização de mensagens.
+Autor: Luizg
+Data de criação: 2026-04-25
+Data de atualização: 2026-04-25
+*/
+
 package datagram
 
 import (
@@ -23,38 +30,45 @@ type Datagram struct {
 	MessageText string
 }
 
+// Unmarshal converte bytes recebidos em estrutura Datagram validada.
+// Entradas: slice de bytes no formato [tipo|nickSize|nick|messageSize|message].
+// Saída: ponteiro para Datagram e erro em caso de payload inválido.
 func Unmarshal(data []byte) (*Datagram, error) {
-	//represents the current position in the datagram
+	// Representa posição atual durante parsing do payload.
 	log := logger.Get()
-	var pos int = 0
+	var cursor int
 
 	if len(data) < 4 {
 		return nil, logger.LogError("INVALID_DATAGRAM: datagram must be at least 3 bytes long")
 	}
-	//set o nicksize e o messageType
+	// Lê tipo e tamanho do nickname.
 	dg := &Datagram{
 		Type:     MessageType(data[0]),
 		NickSize: data[1],
 	}
-	pos += 2
+	cursor += 2
 
-	//set o nick
+	// Lê nickname.
 	if dg.NickSize > 0 && dg.NickSize <= 64 {
-		dg.Nick = string(data[pos : pos+int(dg.NickSize)])
-		pos += int(dg.NickSize)
+		dg.Nick = string(data[cursor : cursor+int(dg.NickSize)])
+		cursor += int(dg.NickSize)
 	} else {
 		return nil, logger.LogError("INVALID_DATAGRAM: invalid nickname size")
 	}
 
-	//set o messagesize e o messagetext
-	dg.MessageSize = data[pos]
-	pos++
-	dg.MessageText = string(data[pos : pos+int(dg.MessageSize)])
+	// Lê tamanho e conteúdo da mensagem.
+	dg.MessageSize = data[cursor]
+	cursor++
+	dg.MessageText = string(data[cursor : cursor+int(dg.MessageSize)])
 	log.Debug("Parsed datagram", zap.Uint8("type", uint8(dg.Type)), zap.String("nick", dg.Nick), zap.String("message", dg.MessageText))
 
 	return dg, nil
 
 }
+
+// Marshal converte Datagram em bytes prontos para envio em UDP.
+// Entradas: receptor Datagram com campos Type, Nick e MessageText preenchidos.
+// Saída: slice de bytes serializado e erro se houver inconsistência de tamanho.
 func (dg *Datagram) Marshal() ([]byte, error) {
 	if dg.NickSize > 64 {
 		return nil, logger.LogError("INVALID_DATAGRAM: nickname size exceeds 64 bytes")
@@ -70,9 +84,11 @@ func (dg *Datagram) Marshal() ([]byte, error) {
 
 }
 
-// DEBUG ONLY
-func TypeToString(t MessageType) string {
-	switch t {
+// TypeToString converte MessageType para representação textual legível.
+// Entradas: tipo da mensagem.
+// Saída: string de identificação do tipo.
+func TypeToString(messageType MessageType) string {
+	switch messageType {
 	case TEXT:
 		return "TEXT"
 	case EMOJI:
@@ -86,6 +102,9 @@ func TypeToString(t MessageType) string {
 	}
 }
 
+// String retorna representação simplificada do datagrama para logs.
+// Entradas: receptor Datagram.
+// Saída: string no formato TYPE/NICK/MESSAGE.
 func (dg *Datagram) String() string {
 	return TypeToString(dg.Type) + "/" + dg.Nick + "/" + string(dg.MessageText)
 }

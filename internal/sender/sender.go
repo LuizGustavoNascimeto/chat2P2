@@ -1,3 +1,10 @@
+/*
+Descrição: Realiza envio concorrente de datagramas UDP para múltiplos peers.
+Autor: Luizg
+Data de criação: 2026-04-25
+Data de atualização: 2026-04-25
+*/
+
 package sender
 
 import (
@@ -9,6 +16,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// Broadcast envia payload para todos os alvos informados em paralelo.
+// Entradas: conexão UDP, bytes serializados e lista de endereços destino.
+// Saída: nenhuma; erros são registrados em log.
 func Broadcast(conn *net.UDPConn, data []byte, targets []string) {
 	log := logger.Get()
 	var wg sync.WaitGroup

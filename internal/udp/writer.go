@@ -1,3 +1,10 @@
+/*
+Descrição: Lê entrada do terminal, cria datagramas e dispara broadcast para peers ativos.
+Autor: Luizg
+Data de criação: 2026-04-25
+Data de atualização: 2026-04-25
+*/
+
 package udp
 
 import (
@@ -16,12 +23,15 @@ import (
 	"go.uber.org/zap"
 )
 
+// WriteLoop executa ciclo de leitura do stdin e envio de mensagens para peers conhecidos.
+// Entradas: conexão UDP ativa e repositório de peers.
+// Saída: nenhuma; encerra quando stdin fecha.
 func WriteLoop(conn *net.UDPConn, peersRepo *peers.Store) {
 	log := logger.Get()
-	reader := bufio.NewReader(os.Stdin)
+	stdinReader := bufio.NewReader(os.Stdin)
 
 	for {
-		input, err := ReadLine("> ", reader)
+		input, err := ReadLine("> ", stdinReader)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Info("stdin closed, exiting write loop")
@@ -43,6 +53,9 @@ func WriteLoop(conn *net.UDPConn, peersRepo *peers.Store) {
 
 }
 
+// ReadLine exibe prompt opcional e retorna linha sem quebra final.
+// Entradas: texto de prompt e leitor já aberto.
+// Saída: conteúdo da linha e erro de leitura, quando existir.
 func ReadLine(prompt string, reader *bufio.Reader) (string, error) {
 	if prompt != "" {
 		fmt.Print(prompt)

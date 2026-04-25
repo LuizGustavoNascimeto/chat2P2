@@ -1,3 +1,10 @@
+/*
+Descrição: Converte payload de emoji em símbolo Unicode e imprime no terminal.
+Autor: Luizg
+Data de criação: 2026-04-25
+Data de atualização: 2026-04-25
+*/
+
 package receiver
 
 import (
@@ -6,8 +13,12 @@ import (
 	"strings"
 )
 
-func EmojiHandler(dg *datagram.Datagram, addr string) {
-	text := strings.TrimSpace(dg.MessageText)
+// EmojiHandler interpreta texto como atalho de emoji e exibe saída formatada.
+// Entradas: datagrama de mensagem e endereço remoto do emissor.
+// Saída: nenhuma; efeito colateral de escrita em stdout.
+func EmojiHandler(receivedDatagram *datagram.Datagram, addr string) {
+	_ = addr
+	text := strings.TrimSpace(receivedDatagram.MessageText)
 	emojiMap := map[string]string{
 		":D":  "😄",
 		":)":  "🙂",
@@ -26,5 +37,5 @@ func EmojiHandler(dg *datagram.Datagram, addr string) {
 		emoji = "❓"
 	}
 
-	fmt.Printf("%s: %s\n", dg.Nick, emoji)
+	fmt.Printf("%s: %s\n", receivedDatagram.Nick, emoji)
 }
