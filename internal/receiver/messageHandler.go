@@ -23,6 +23,7 @@ func MessageHandler(dg *datagram.Datagram, addr string, conn *net.UDPConn, peers
 	case datagram.EMOJI:
 		EmojiHandler(dg, addr)
 	case datagram.URL:
+		URLHandler(dg, addr)
 
 	default:
 		log.Warn("Received datagram with unknown type", zap.Int("type", int(dg.Type)))
