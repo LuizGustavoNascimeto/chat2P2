@@ -50,7 +50,7 @@ func Unmarshal(data []byte) (*Datagram, error) {
 	dg.MessageSize = data[pos]
 	pos++
 	dg.MessageText = string(data[pos : pos+int(dg.MessageSize)])
-	log.Info("Parsed datagram", zap.Uint8("type", uint8(dg.Type)), zap.String("nick", dg.Nick), zap.String("message", dg.MessageText))
+	log.Debug("Parsed datagram", zap.Uint8("type", uint8(dg.Type)), zap.String("nick", dg.Nick), zap.String("message", dg.MessageText))
 
 	return dg, nil
 

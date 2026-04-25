@@ -6,10 +6,10 @@ import (
 	"chat2p2/internal/peers"
 	"chat2p2/internal/sender"
 	"chat2p2/pkg/utils"
-	"time"
+	"net"
 )
 
-func EchoHandler(dg *datagram.Datagram, addr string, peersRepo *peers.Store) error {
+func EchoHandler(dg *datagram.Datagram, addr string, peersRepo *peers.Store, conn *net.UDPConn) error {
 	myPort := env.GetPort()
 	addrPort, err := utils.ExtractPort(addr)
 	if err != nil {
@@ -33,11 +33,7 @@ func EchoHandler(dg *datagram.Datagram, addr string, peersRepo *peers.Store) err
 	if peer.Waiting {
 		peer.Waiting = false
 	} else {
-		sender.ResponseEcho(addr)
+		sender.ResponseEcho(addr, conn)
 	}
-
-	peer.LastSeen = time.Now().Unix()
-
-	peersRepo.Update(addr, peer)
 	return nil
 }

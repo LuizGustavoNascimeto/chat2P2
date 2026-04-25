@@ -38,7 +38,6 @@ func broadcastPing(conn *net.UDPConn, data []byte, start, end int) {
 // collectEchoReplies lê respostas UDP durante o timeout e retorna os peers
 // que responderam com ECHO.
 func collectEchoReplies(conn *net.UDPConn, timeout time.Duration) []peers.Peer {
-	log := logger.Get()
 	conn.SetReadDeadline(time.Now().Add(timeout))
 	defer conn.SetReadDeadline(time.Time{})
 
@@ -54,12 +53,12 @@ func collectEchoReplies(conn *net.UDPConn, timeout time.Duration) []peers.Peer {
 		if err != nil {
 			continue
 		}
+
 		if response.Type == datagram.ECHO {
 			found = append(found, peers.Peer{
 				Addr:     remoteAddr.String(),
 				LastSeen: time.Now().Unix(),
 			})
-			log.Info("Peer found", zap.String("addr", remoteAddr.String()))
 		}
 	}
 	return found
@@ -67,7 +66,7 @@ func collectEchoReplies(conn *net.UDPConn, timeout time.Duration) []peers.Peer {
 
 // FindPeers descobre peers ativos nas portas 8000–9000 via ping/pong UDP.
 func FindPeers(conn *net.UDPConn) []peers.Peer {
-	dg := message.CreateMessage("ping", datagram.ECHO)
+	dg := message.CreateEcho("ping")
 	data, err := dg.Marshal()
 	if err != nil {
 		logger.Get().Error("Failed to marshal ping datagram", zap.Error(err))

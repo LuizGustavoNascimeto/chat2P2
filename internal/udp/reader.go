@@ -2,6 +2,7 @@ package udp
 
 import (
 	"chat2p2/internal/datagram"
+	"chat2p2/internal/peers"
 	"chat2p2/internal/receiver"
 	"chat2p2/pkg/logger"
 	"net"
@@ -11,7 +12,7 @@ import (
 
 const MaxPacketSize = 322
 
-func ReadLoop(conn *net.UDPConn) {
+func ReadLoop(conn *net.UDPConn, peersRepo *peers.Store) {
 	defer conn.Close()
 	log := logger.Get()
 
@@ -29,6 +30,6 @@ func ReadLoop(conn *net.UDPConn) {
 			log.Error("Error parsing datagram", zap.Error(err))
 			continue
 		}
-		receiver.MessageHandler(dg, remoteAddr.String())
+		receiver.MessageHandler(dg, remoteAddr.String(), conn, peersRepo)
 	}
 }

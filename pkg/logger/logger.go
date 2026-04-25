@@ -15,11 +15,11 @@ var (
 func Init(env string) {
 	once.Do(func() {
 		var err error
-		if env == "production" {
-			instance, err = zap.NewProduction()
-		} else {
-			instance, err = zap.NewDevelopment()
-		}
+		// if env == "production" {
+		instance, err = zap.NewProduction()
+		// } else {
+		// 	instance, err = zap.NewDevelopment()
+		// }
 		if err != nil {
 			panic(err)
 		}

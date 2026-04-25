@@ -42,7 +42,7 @@ func (s *Store) Create(addr string) (Peer, error) {
 		return Peer{}, ErrPeerAlreadyExists
 	}
 	log := logger.Get()
-	log.Info("Creating peer", zap.String("addr", addr))
+	log.Debug("Creating peer", zap.String("addr", addr))
 	peer := Peer{
 		Addr:     addr,
 		Waiting:  false,
@@ -138,6 +138,9 @@ func (s *Store) GetAllAddresses() []string {
 	defer s.mu.RUnlock()
 	addrs := make([]string, len(s.peers))
 	for i, u := range s.peers {
+		if u.LastSeen < time.Now().Add(-5*time.Minute).Unix() {
+			continue
+		}
 		addrs[i] = u.Addr
 	}
 	return addrs
